@@ -149,7 +149,7 @@ EDA is performed in `notebooks/eda.ipynb` and covers:
 ### Local Setup
 
 ```bash
-git clone https://github.com/<your-username>/credit-risk-model.git
+git clone https://github.com/Nebiyou-x/credit-risk-model.git
 cd credit-risk-model
 pip install -r requirements.txt
 ```
