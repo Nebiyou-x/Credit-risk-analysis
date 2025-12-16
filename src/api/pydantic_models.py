@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class PredictionRequest(BaseModel):
     total_amount: float
     avg_amount: float
@@ -9,5 +10,3 @@ class PredictionRequest(BaseModel):
 
 class PredictionResponse(BaseModel):
     risk_probability: float
-
-

@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 
 ##Custom Transformers
 
+
 class DateFeatureExtractor(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
@@ -30,12 +31,16 @@ class CustomerAggregator(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        agg = X.groupby("CustomerId").agg(
-            total_amount=("Amount", "sum"),
-            avg_amount=("Amount", "mean"),
-            txn_count=("TransactionId", "count"),
-            amount_std=("Amount", "std"),
-        ).reset_index()
+        agg = (
+            X.groupby("CustomerId")
+            .agg(
+                total_amount=("Amount", "sum"),
+                avg_amount=("Amount", "mean"),
+                txn_count=("TransactionId", "count"),
+                amount_std=("Amount", "std"),
+            )
+            .reset_index()
+        )
 
         agg["amount_std"] = agg["amount_std"].fillna(0)
         return agg
@@ -43,40 +48,38 @@ class CustomerAggregator(BaseEstimator, TransformerMixin):
 
 ##Build Feature Pipeline
 
+
 def build_feature_pipeline():
-    numeric_features = [
-        "total_amount",
-        "avg_amount",
-        "txn_count",
-        "amount_std"
-    ]
+    numeric_features = ["total_amount", "avg_amount", "txn_count", "amount_std"]
 
     categorical_features = []
 
     numeric_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler())
+            ("scaler", StandardScaler()),
         ]
     )
 
     categorical_pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("encoder", OneHotEncoder(handle_unknown="ignore"))
+            ("encoder", OneHotEncoder(handle_unknown="ignore")),
         ]
     )
 
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", numeric_pipeline, numeric_features),
-            ("cat", categorical_pipeline, categorical_features)
+            ("cat", categorical_pipeline, categorical_features),
         ]
     )
 
     return preprocessor
 
+
 ##End-to-End Processing Function
+
 
 def process_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -94,17 +97,18 @@ def process_data(df: pd.DataFrame) -> pd.DataFrame:
 def create_rfm_target(df: pd.DataFrame) -> pd.DataFrame:
     snapshot_date = df["TransactionStartTime"].max() + pd.Timedelta(days=1)
 
-    rfm = df.groupby("CustomerId").agg(
-        Recency=("TransactionStartTime",
-                 lambda x: (snapshot_date - x.max()).days),
-        Frequency=("TransactionId", "count"),
-        Monetary=("Value", "sum"),
-    ).reset_index()
+    rfm = (
+        df.groupby("CustomerId")
+        .agg(
+            Recency=("TransactionStartTime", lambda x: (snapshot_date - x.max()).days),
+            Frequency=("TransactionId", "count"),
+            Monetary=("Value", "sum"),
+        )
+        .reset_index()
+    )
 
     scaler = StandardScaler()
-    rfm_scaled = scaler.fit_transform(
-        rfm[["Recency", "Frequency", "Monetary"]]
-    )
+    rfm_scaled = scaler.fit_transform(rfm[["Recency", "Frequency", "Monetary"]])
 
     kmeans = KMeans(n_clusters=3, random_state=42)
     rfm["cluster"] = kmeans.fit_predict(rfm_scaled)

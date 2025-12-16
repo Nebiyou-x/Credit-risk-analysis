@@ -6,8 +6,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
-    accuracy_score, precision_score,
-    recall_score, f1_score, roc_auc_score
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
 )
 
 from src.data_processing import process_data, create_rfm_target
@@ -21,6 +24,7 @@ def evaluate(y_true, y_pred, y_prob):
         "f1": f1_score(y_true, y_pred),
         "roc_auc": roc_auc_score(y_true, y_prob),
     }
+
 
 def train():
     df = pd.read_csv("data/raw/data.csv")
@@ -40,9 +44,7 @@ def train():
 
     models = {
         "logistic_regression": LogisticRegression(max_iter=1000),
-        "random_forest": RandomForestClassifier(
-            n_estimators=200, random_state=42
-        )
+        "random_forest": RandomForestClassifier(n_estimators=200, random_state=42),
     }
 
     mlflow.set_experiment("credit-risk-model")
@@ -59,5 +61,7 @@ def train():
             mlflow.log_params(model.get_params())
             mlflow.log_metrics(metrics)
             mlflow.sklearn.log_model(model, "model")
+
+
 if __name__ == "__main__":
     train()
