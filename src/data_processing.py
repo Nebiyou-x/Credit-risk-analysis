@@ -6,6 +6,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 
 ##Custom Transformers
@@ -84,3 +86,33 @@ def process_data(df: pd.DataFrame) -> pd.DataFrame:
     agg = CustomerAggregator().transform(df)
 
     return agg
+
+
+##Proxy Target Variable Engineering (RFM + KMeans)
+
+
+def create_rfm_target(df: pd.DataFrame) -> pd.DataFrame:
+    snapshot_date = df["TransactionStartTime"].max() + pd.Timedelta(days=1)
+
+    rfm = df.groupby("CustomerId").agg(
+        Recency=("TransactionStartTime",
+                 lambda x: (snapshot_date - x.max()).days),
+        Frequency=("TransactionId", "count"),
+        Monetary=("Value", "sum"),
+    ).reset_index()
+
+    scaler = StandardScaler()
+    rfm_scaled = scaler.fit_transform(
+        rfm[["Recency", "Frequency", "Monetary"]]
+    )
+
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    rfm["cluster"] = kmeans.fit_predict(rfm_scaled)
+
+    # Identify high-risk cluster
+    cluster_summary = rfm.groupby("cluster")[["Frequency", "Monetary"]].mean()
+    high_risk_cluster = cluster_summary.sum(axis=1).idxmin()
+
+    rfm["is_high_risk"] = (rfm["cluster"] == high_risk_cluster).astype(int)
+
+    return rfm[["CustomerId", "is_high_risk"]]
