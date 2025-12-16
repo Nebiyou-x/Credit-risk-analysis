@@ -24,13 +24,17 @@ def test_process_data_columns():
 
 def test_create_rfm_target():
     df = pd.DataFrame({
-        "TransactionId": ["t1", "t2"],
-        "CustomerId": ["c1", "c2"],
-        "Value": [100, 10],
+        "TransactionId": ["t1", "t2", "t3"],
+        "CustomerId": ["c1", "c2", "c3"],
+        "Value": [100, 10, 50],
         "TransactionStartTime": pd.to_datetime(
-            ["2023-01-01", "2023-01-02"]
+            ["2023-01-01", "2023-01-02", "2023-01-03"]
         )
     })
 
     target = create_rfm_target(df)
+
+    
     assert "is_high_risk" in target.columns
+    assert target["is_high_risk"].isin([0, 1]).all()
+    assert len(target) == 3
