@@ -9,3 +9,4 @@ pydantic
 joblib
 pytest
 mlflow
+flake8
